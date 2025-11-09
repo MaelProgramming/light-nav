@@ -1,0 +1,65 @@
+[
+  {
+    "id": "1",
+    "lat": 40.4153774,
+    "lng": -3.7084734,
+    "title": "Plaza Mayor",
+    "category": "Museum"
+  },
+  {
+    "id": "2",
+    "lat": 40.4152621,
+    "lng": -3.6860406,
+    "title": "Parque del Retiro",
+    "category": "Parc"
+  },
+  {
+    "id": "4",
+    "lat": 40.4179555,
+    "lng": -3.7143121,
+    "title": "Palacio Real de Madrid",
+    "category": "Museum"
+  },
+  {
+    "id": "5",
+    "lat": 40.419996,
+    "lng": -3.6936079,
+    "title": "Puerta de Alcála",
+    "category": "Museum"
+  },
+  {
+    "id": "4",
+    "lat": 40.4190714,
+    "lng": -3.7043815,
+    "title": "Cien Montaditos (Calle Montera)",
+    "category": "Restaurant"
+  },
+  {
+    "id": "e24e14dc-0e28-46f0-b373-7a7712609603",
+    "lat": 40.545895817213754,
+    "lng": -3.8029861450195317,
+    "title": "Monte del Prado",
+    "category": "Parc"
+  },
+  {
+    "id": "d97360fe-04aa-4b8a-bb83-a4406d2ecd52",
+    "lat": 40.4297009604458,
+    "lng": -3.7602424621582036,
+    "title": "Casa de Campo",
+    "category": "Parc"
+  },
+  {
+    "id": "210ccd85-2783-4d4b-8a46-54f8b4fdb5a5",
+    "lat": 40.37571300322371,
+    "lng": -3.7078857421875004,
+    "title": "Pradolongo",
+    "category": "Parc"
+  },
+  {
+    "id": "f072573b-d519-431c-99d2-57d3c425cfda",
+    "lat": 40.45974812012843,
+    "lng": -3.832511901855469,
+    "title": "Monte del Pillar",
+    "category": "Parc"
+  }
+]
