@@ -8,13 +8,15 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
+// Deleting default comments
 delete (L.Icon.Default.prototype as any)._getIconUrl;
+// Adding new icons
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
-
+// Creating default position
 const DEFAULT_POSITION: [number, number] = [40.4168, -3.7038]; // Madrid
 const CATEGORIES: MarkerData['category'][] = ['Restaurant', 'Parc', 'Museum', 'Subway', 'Airport'];
 
@@ -107,10 +109,10 @@ const MapComponent = () => {
           >
             <option value="All">All</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+            </select>
         </label>
       </div>
-
+      {/* Initializing the map container*/ }
       <MapContainer center={DEFAULT_POSITION} zoom={13} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
@@ -129,5 +131,5 @@ const MapComponent = () => {
     </div>
   );
 };
-
+// Exporting the component to be imported by the main component of the app
 export default MapComponent;
