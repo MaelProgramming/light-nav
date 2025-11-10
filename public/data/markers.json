@@ -28,7 +28,7 @@
     "category": "Museum"
   },
   {
-    "id": "4",
+    "id": "6",
     "lat": 40.4190714,
     "lng": -3.7043815,
     "title": "Cien Montaditos (Calle Montera)",
@@ -61,5 +61,12 @@
     "lng": -3.832511901855469,
     "title": "Monte del Pillar",
     "category": "Parc"
+  },
+  {
+    "id": "84f49007-49d0-472a-b49e-f7f0d0a0c341",
+    "lat": 40.49369829904371,
+    "lng": -3.5719299316406254,
+    "title": "Barajas Airport",
+    "category": "Airport"
   }
 ]
