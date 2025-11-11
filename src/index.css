@@ -7,3 +7,17 @@
   border: 2px solid #555;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
 }
+/* Cacher les boutons zoom Leaflet */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Cacher la barre d'attribution */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* Cacher d’autres contrôles si besoin */
+.leaflet-control {
+  display: none !important;
+}

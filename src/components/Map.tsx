@@ -1,8 +1,13 @@
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { loadMarkers, type MarkerData } from '../types/Marker';
-import { icons } from "../utils/icons"; // ✅ tes icônes emoji personnalisées
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { icons } from "../utils/icons";
+import { type MarkerData } from '../types/Marker';
+
+const DEFAULT_POSITION: [number, number] = [40.4168, -3.7038]; // Madrid
+const CATEGORIES: MarkerData['category'][] = ['Restaurant', 'Parc', 'Museum', 'Subway', 'Airport'];
 
 // Correction des icônes Leaflet par défaut
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -16,145 +21,113 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const DEFAULT_POSITION: [number, number] = [40.4168, -3.7038]; // Madrid
-const CATEGORIES: MarkerData['category'][] = ['Restaurant', 'Parc', 'Museum', 'Subway', 'Airport'];
-
 const MapComponent = () => {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [filter, setFilter] = useState<MarkerData['category'] | 'All'>('All');
 
-  const url: string = import.meta.env.BASE_URL + 'data/markers.json';
-
-  // Charger les marqueurs depuis le JSON local
   useEffect(() => {
-    loadMarkers(url)
-      .then(data => {
-        // ✅ éviter les doublons d’ID
-        const seen = new Set<string>();
-        const uniqueMarkers = data.map(m => {
-          if (seen.has(m.id)) {
-            return { ...m, id: crypto.randomUUID() };
-          }
-          seen.add(m.id);
-          return m;
-        });
-        setMarkers(uniqueMarkers);
-      })
-      .catch(err => console.error('❌ Failed to load markers JSON:', err));
-  }, [url]);
+    const fetchMarkers = async () => {
+      const querySnapshot = await getDocs(collection(db, 'markers'));
+      const data: MarkerData[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MarkerData));
+      setMarkers(data);
+    };
+    fetchMarkers();
+  }, []);
 
-  // Sauvegarder automatiquement les ajouts dans localStorage
-  useEffect(() => {
-    localStorage.setItem('markers', JSON.stringify(markers));
-  }, [markers]);
-
-  // Ajouter un marqueur au clic
   const MapClickHandler = () => {
     useMapEvents({
-      click(e) {
+      click: async (e) => {
         const title = prompt('Marker title') || 'Without title';
         const categoryInput = prompt(`Category (${CATEGORIES.join(' / ')})`);
         const category = categoryInput as MarkerData['category'];
-
         if (!category || !CATEGORIES.includes(category)) {
           alert('Invalid category!');
           return;
         }
-
-        setMarkers(prev => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            lat: e.latlng.lat,
-            lng: e.latlng.lng,
-            title,
-            category
-          }
-        ]);
+        const newMarker: MarkerData = { id: '', lat: e.latlng.lat, lng: e.latlng.lng, title, category };
+        const docRef = await addDoc(collection(db, 'markers'), newMarker);
+        newMarker.id = docRef.id;
+        setMarkers(prev => [...prev, newMarker]);
       }
     });
     return null;
   };
 
-  // Supprimer le dernier marqueur
-  const deleteLastMarker = () => {
-    if (markers.length === 0) return alert('No markers to delete!');
-    setMarkers(prev => prev.slice(0, -1));
-  };
-
-  // Exporter les marqueurs en JSON
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(markers, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'markers.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Filtrer les marqueurs selon la catégorie
-  const displayedMarkers =
-    filter === 'All' ? markers : markers.filter(m => m.category === filter);
+  const displayedMarkers = filter === 'All' ? markers : markers.filter(m => m.category === filter);
 
   return (
-    <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
-      {/* Boutons Delete, Export et Filtre */}
+    <div style={{ height: '100vh', width: '100%', position: 'relative', fontFamily: 'Roboto, sans-serif' }}>
+
+      {/* Barre flottante en haut à gauche */}
       <div
         style={{
           position: 'absolute',
-          top: 10,
-          left: 10,
+          top: 15,
+          left: 15,
           zIndex: 1000,
-          background: 'white',
-          padding: 10,
-          borderRadius: 8,
+          background: 'rgba(255,255,255,0.95)',
+          padding: '12px 16px',
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 5
+          gap: 8,
+          minWidth: 160
         }}
       >
-        <button onClick={deleteLastMarker} style={{ cursor: 'pointer' }}>
-          Delete Last Marker
-        </button>
-        <button onClick={downloadJSON} style={{ cursor: 'pointer' }}>
-          💾 Export JSON
-        </button>
-        <label>
-          Filter:{' '}
-          <select
-            value={filter}
-            onChange={e => setFilter(e.target.value as MarkerData['category'] | 'All')}
-            style={{ marginLeft: 5 }}
-          >
-            <option value="All">All</option>
-            {CATEGORIES.map(c => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+        <a href="/privacy-policy" style={{ fontSize: 12, color: '#555' }}>
+          Privacy Policy
+        </a>
+        <label style={{ fontWeight: 500, fontSize: 14, color: '#333' }}>
+          Filter:
         </label>
+        <select
+          value={filter}
+          onChange={e => setFilter(e.target.value as MarkerData['category'] | 'All')}
+          style={{
+            padding: '6px 10px',
+            borderRadius: 6,
+            border: '1px solid #ccc',
+            fontSize: 14,
+            cursor: 'pointer'
+          }}
+        >
+          <option value="All">All</option>
+          {CATEGORIES.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Carte Leaflet */}
-      <MapContainer center={DEFAULT_POSITION} zoom={13} style={{ height: '100%', width: '100%' }}>
+      {/* Carte */}
+      <MapContainer
+        center={DEFAULT_POSITION}
+        zoom={13}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={true}
+      >
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapClickHandler />
-
-        {/* ✅ Affichage des marqueurs avec icônes personnalisées */}
         {displayedMarkers.map(marker => (
           <Marker
             key={marker.id}
             position={[marker.lat, marker.lng]}
-            icon={icons[marker.category] || icons.Museum} // 👈 utilisation de ton icône personnalisée
+            icon={icons[marker.category] || icons.Museum}
           >
-            <Popup>
-              <strong>{marker.title}</strong> <br />
-              Category: {marker.category}
+            <Popup
+              closeButton={true}
+              closeOnClick={false}
+              autoPan={true}
+              minWidth={180}
+            >
+              <div style={{ fontSize: 14 }}>
+                <strong>{marker.title}</strong>
+                <br />
+                <span style={{ color: '#555' }}>Category: {marker.category}</span>
+              </div>
             </Popup>
           </Marker>
         ))}
