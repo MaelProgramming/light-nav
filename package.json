@@ -12,6 +12,7 @@
     "deploy": " gh-pages -d dist"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "gh-pages": "^6.3.0",
     "idb": "^8.0.3",
     "leaflet": "^1.9.4",
