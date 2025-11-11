@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.5.0",
   "type": "module",
-  "homepage": "maelprogramming.github.io/light-nav",
+  "homepage": "https://lightnav.github.io/",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
