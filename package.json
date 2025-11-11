@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.5.0",
   "type": "module",
-  "homepage": "https://lightnav.github.io/",
+  "homepage": "lightnav.github.io/",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -12,7 +12,6 @@
     "deploy": " gh-pages -d dist"
   },
   "dependencies": {
-    "@dataconnect/generated": "file:src/dataconnect-generated",
     "gh-pages": "^6.3.0",
     "idb": "^8.0.3",
     "leaflet": "^1.9.4",
