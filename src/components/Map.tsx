@@ -1,7 +1,8 @@
+// Map.tsx
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot } from 'firebase/firestore'; // onSnapshot importé
 import { db } from '../firebase';
 import { icons } from '../utils/icons';
 import { type MarkerData } from '../types/Marker';
@@ -22,38 +23,67 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+// Correction: Ne stocke plus le champ 'id' dans Firestore
+const MapClickHandler = ({ onAddMarker }: { onAddMarker: (marker: MarkerData) => void }) => {
+  useMapEvents({
+    click: async (e) => {
+      const title = prompt('Marker title') || 'Without title';
+      const categoryInput = prompt(`Category (${CATEGORIES.join(' / ')})`);
+      const category = categoryInput as MarkerData['category'];
+      if (!category || !CATEGORIES.includes(category)) {
+        alert('Invalid category!');
+        return;
+      }
+
+      // Crée un objet SANS l'ID pour le stockage Firestore
+      const markerPayload = { 
+        lat: e.latlng.lat, 
+        lng: e.latlng.lng, 
+        title, 
+        category 
+      };
+      
+      // Stocke le document. onSnapshot mettra à jour l'état local.
+      await addDoc(collection(db, 'markers'), markerPayload); 
+    },
+  });
+  return null;
+};
+
 const Map = () => {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [filter, setFilter] = useState<MarkerData['category'] | 'All'>('All');
   const [selectedPoints, setSelectedPoints] = useState<MarkerData[]>([]);
 
+  // 🔄 Correction: Utilisation de onSnapshot pour la synchronisation en temps réel
   useEffect(() => {
-    const fetchMarkers = async () => {
-      const querySnapshot = await getDocs(collection(db, 'markers'));
-      const data: MarkerData[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MarkerData));
-      setMarkers(data);
-    };
-    fetchMarkers();
-  }, []);
+    const markersCollection = collection(db, 'markers');
+    
+    // Configuration de l'écouteur en temps réel
+    const unsubscribe = onSnapshot(markersCollection, (querySnapshot) => {
+      const data: MarkerData[] = querySnapshot.docs.map(doc => {
+        const docData = doc.data(); 
 
-  const MapClickHandler = () => {
-    useMapEvents({
-      click: async (e) => {
-        const title = prompt('Marker title') || 'Without title';
-        const categoryInput = prompt(`Category (${CATEGORIES.join(' / ')})`);
-        const category = categoryInput as MarkerData['category'];
-        if (!category || !CATEGORIES.includes(category)) {
-          alert('Invalid category!');
-          return;
-        }
-        const newMarker: MarkerData = { id: '', lat: e.latlng.lat, lng: e.latlng.lng, title, category };
-        const docRef = await addDoc(collection(db, 'markers'), newMarker);
-        newMarker.id = docRef.id;
-        setMarkers(prev => [...prev, newMarker]);
-      },
+        // Remplacement essentiel: doc.id est la source de vérité pour l'ID
+        return { 
+          id: doc.id,
+          lat: docData.lat as number,
+          lng: docData.lng as number,
+          title: docData.title as string,
+          category: docData.category as MarkerData['category']
+        } as MarkerData;
+      });
+      
+      console.log(`[Firestore] ${data.length} marqueurs chargés.`); // Log de vérification
+      setMarkers(data);
+    }, 
+    (error) => {
+      console.error("[Firestore ERREUR] La récupération a échoué:", error);
     });
-    return null;
-  };
+
+    // Nettoyage: Désabonnement lors du démontage du composant
+    return () => unsubscribe();
+  }, []); // [] garantit que l'écouteur est configuré une seule fois
 
   const displayedMarkers = filter === 'All' ? markers : markers.filter(m => m.category === filter);
 
@@ -68,7 +98,8 @@ const Map = () => {
   };
 
   return (
-    <div style={{ height: '100vh', width: '100%', position: 'relative', fontFamily: 'Roboto, sans-serif' }}>
+    <div style={{ height: '100vh', width: '100%', position: 'relative' }}>
+      {/* Filter UI */}
       <div
         style={{
           position: 'absolute',
@@ -97,7 +128,8 @@ const Map = () => {
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapClickHandler />
+
+        <MapClickHandler onAddMarker={() => {}} /> 
 
         {displayedMarkers.map((marker, index) => (
           <Marker
@@ -110,13 +142,13 @@ const Map = () => {
               <div>
                 <strong>{marker.title}</strong>
                 <br />
+                {/* Ajout d'une vérification pour l'état de sélection */}
                 <em>{selectedPoints.some(p => p.id === marker.id) ? 'Selected' : 'Click to select'}</em>
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {/* Composant enfant pour calculer et afficher la route */}
         <RouteMap selectedPoints={selectedPoints} />
       </MapContainer>
     </div>
