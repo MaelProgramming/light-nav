@@ -3,10 +3,11 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import L from 'leaflet';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { icons } from "../utils/icons";
+import { icons } from '../utils/icons';
 import { type MarkerData } from '../types/Marker';
+import RouteMap from './RouteMap';
 
-const DEFAULT_POSITION: [number, number] = [40.4168, -3.7038]; // Madrid
+const DEFAULT_POSITION: [number, number] = [40.4168, -3.7038];
 const CATEGORIES: MarkerData['category'][] = ['Restaurant', 'Parc', 'Museum', 'Subway', 'Airport'];
 
 // Correction des icônes Leaflet par défaut
@@ -21,9 +22,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const MapComponent = () => {
+const Map = () => {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [filter, setFilter] = useState<MarkerData['category'] | 'All'>('All');
+  const [selectedPoints, setSelectedPoints] = useState<MarkerData[]>([]);
 
   useEffect(() => {
     const fetchMarkers = async () => {
@@ -48,17 +50,25 @@ const MapComponent = () => {
         const docRef = await addDoc(collection(db, 'markers'), newMarker);
         newMarker.id = docRef.id;
         setMarkers(prev => [...prev, newMarker]);
-      }
+      },
     });
     return null;
   };
 
   const displayedMarkers = filter === 'All' ? markers : markers.filter(m => m.category === filter);
 
+  const toggleSelectPoint = (marker: MarkerData) => {
+    if (selectedPoints.some(p => p.id === marker.id)) {
+      setSelectedPoints(selectedPoints.filter(p => p.id !== marker.id));
+    } else if (selectedPoints.length < 2) {
+      setSelectedPoints([...selectedPoints, marker]);
+    } else {
+      setSelectedPoints([marker]);
+    }
+  };
+
   return (
     <div style={{ height: '100vh', width: '100%', position: 'relative', fontFamily: 'Roboto, sans-serif' }}>
-
-      {/* Barre flottante en haut à gauche */}
       <div
         style={{
           position: 'absolute',
@@ -72,68 +82,45 @@ const MapComponent = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: 8,
-          minWidth: 160
+          minWidth: 160,
         }}
       >
-        <a href="/privacy-policy" style={{ fontSize: 12, color: '#555' }}>
-          Privacy Policy
-        </a>
-        <label style={{ fontWeight: 500, fontSize: 14, color: '#333' }}>
-          Filter:
-        </label>
-        <select
-          value={filter}
-          onChange={e => setFilter(e.target.value as MarkerData['category'] | 'All')}
-          style={{
-            padding: '6px 10px',
-            borderRadius: 6,
-            border: '1px solid #ccc',
-            fontSize: 14,
-            cursor: 'pointer'
-          }}
-        >
+        <label>Filter:</label>
+        <select value={filter} onChange={e => setFilter(e.target.value as MarkerData['category'] | 'All')}>
           <option value="All">All</option>
-          {CATEGORIES.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+          {CATEGORIES.map(c => (<option key={c} value={c}>{c}</option>))}
         </select>
       </div>
 
-      {/* Carte */}
-      <MapContainer
-        center={DEFAULT_POSITION}
-        zoom={13}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
-      >
+      <MapContainer center={DEFAULT_POSITION} zoom={13} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapClickHandler />
-        {displayedMarkers.map(marker => (
+
+        {displayedMarkers.map((marker, index) => (
           <Marker
-            key={marker.id}
+            key={marker.id || `temp-${index}`}
             position={[marker.lat, marker.lng]}
             icon={icons[marker.category] || icons.Museum}
+            eventHandlers={{ click: () => toggleSelectPoint(marker) }}
           >
-            <Popup
-              closeButton={true}
-              closeOnClick={false}
-              autoPan={true}
-              minWidth={180}
-            >
-              <div style={{ fontSize: 14 }}>
+            <Popup>
+              <div>
                 <strong>{marker.title}</strong>
                 <br />
-                <span style={{ color: '#555' }}>Category: {marker.category}</span>
+                <em>{selectedPoints.some(p => p.id === marker.id) ? 'Selected' : 'Click to select'}</em>
               </div>
             </Popup>
           </Marker>
         ))}
+
+        {/* Composant enfant pour calculer et afficher la route */}
+        <RouteMap selectedPoints={selectedPoints} />
       </MapContainer>
     </div>
   );
 };
 
-export default MapComponent;
+export default Map;
