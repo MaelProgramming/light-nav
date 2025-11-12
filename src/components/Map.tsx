@@ -25,6 +25,7 @@ L.Icon.Default.mergeOptions({
 
 // Correction: Ne stocke plus le champ 'id' dans Firestore
 const MapClickHandler = ({ onAddMarker }: { onAddMarker: (marker: MarkerData) => void }) => {
+  console.log(onAddMarker)
   useMapEvents({
     click: async (e) => {
       const title = prompt('Marker title') || 'Without title';
